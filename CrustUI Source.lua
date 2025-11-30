@@ -303,6 +303,7 @@ function CrustUI:CreateWindow(config)
         Name = "CrustUI_" .. windowName:gsub("%s+", ""),
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        DisplayOrder = config.DisplayOrder or (config.AlwaysOnTop and 1000 or 1),
     }, CoreGui)
 
     local shadowFrame = CreateInstance("Frame", {
@@ -337,6 +338,7 @@ function CrustUI:CreateWindow(config)
         BackgroundColor3 = theme.Background,
         BorderSizePixel = 0,
         ClipsDescendants = true,
+        BackgroundTransparency = 1,
     }, screenGui)
 
     CreateInstance("UICorner", {
@@ -476,6 +478,9 @@ function CrustUI:CreateWindow(config)
     MakeDraggable(mainFrame, titleBar)
     MakeDraggable(shadowFrame, titleBar)
 
+    -- fade in
+    Tween(mainFrame, {BackgroundTransparency = 0}, 0.25)
+
     minimizeBtn.MouseEnter:Connect(function()
         Tween(minimizeBtn, {BackgroundColor3 = theme.Hover}, 0.2)
     end)
@@ -507,7 +512,11 @@ function CrustUI:CreateWindow(config)
     end)
 
     closeBtn.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
+        Tween(mainFrame, {BackgroundTransparency = 1}, 0.2)
+        Tween(shadowFrame, {BackgroundTransparency = 1}, 0.2)
+        task.delay(0.22, function()
+            screenGui:Destroy()
+        end)
     end)
 
     local window = {
@@ -895,7 +904,7 @@ function CrustUI:CreateWindow(config)
                 CornerRadius = UDim.new(0, 4),
             }, dropdownList)
 
-            CreateInstance("UIListLayout", {
+            local listLayout = CreateInstance("UIListLayout", {
                 SortOrder = Enum.SortOrder.LayoutOrder,
                 Padding = UDim.new(0, 2),
             }, dropdownList)
@@ -939,7 +948,7 @@ function CrustUI:CreateWindow(config)
                 dropdownList.Visible = isOpen
 
                 if isOpen then
-                    local listHeight = #options * 27
+                    local listHeight = listLayout.AbsoluteContentSize.Y + 6
                     Tween(dropdownFrame, {Size = UDim2.new(1, 0, 0, 35 + listHeight)}, 0.3)
                     Tween(dropdownArrow, {Rotation = 180}, 0.3)
                 else
@@ -1073,6 +1082,398 @@ function CrustUI:CreateWindow(config)
             end)
 
             return keybindFrame
+        end
+
+        -- Color picker
+        function tab:AddColorPicker(text, defaultColor, callback)
+            local pickerFrame = CreateInstance("Frame", {
+                Size = UDim2.new(1, 0, 0, 60),
+                BackgroundColor3 = theme.Tertiary,
+                BackgroundTransparency = 0.8,
+                BorderSizePixel = 0,
+            }, tabContent)
+
+            CreateInstance("UICorner", {
+                CornerRadius = UDim.new(0, 6),
+            }, pickerFrame)
+
+            local label = CreateInstance("TextLabel", {
+                Size = UDim2.new(1, -60, 0, 20),
+                Position = UDim2.new(0, 10, 0, 5),
+                BackgroundTransparency = 1,
+                Text = text,
+                TextColor3 = theme.Text,
+                TextSize = 14,
+                Font = Enum.Font.Gotham,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            }, pickerFrame)
+
+            local preview = CreateInstance("Frame", {
+                Size = UDim2.new(0, 35, 0, 25),
+                Position = UDim2.new(1, -40, 0, 5),
+                BackgroundColor3 = defaultColor or theme.Accent,
+                BorderSizePixel = 0,
+            }, pickerFrame)
+
+            CreateInstance("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+            }, preview)
+
+            local bar = CreateInstance("Frame", {
+                Size = UDim2.new(1, -20, 0, 8),
+                Position = UDim2.new(0, 10, 0, 35),
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                BorderSizePixel = 0,
+            }, pickerFrame)
+
+            CreateInstance("UICorner", {
+                CornerRadius = UDim.new(1, 0),
+            }, bar)
+
+            CreateInstance("UIGradient", {
+                Color = ColorSequence.new{
+                    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
+                    ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 255, 0)),
+                    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+                    ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 255)),
+                    ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 0, 255)),
+                    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+                    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0)),
+                },
+            }, bar)
+
+            local knob = CreateInstance("TextButton", {
+                Size = UDim2.new(0, 12, 0, 12),
+                Position = UDim2.new(0, -6, 0.5, -6),
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                BorderSizePixel = 0,
+                Text = "",
+            }, bar)
+
+            CreateInstance("UICorner", {
+                CornerRadius = UDim.new(1, 0),
+            }, knob)
+
+            local dragging = false
+
+            local function setFromPercent(p)
+                p = math.clamp(p, 0, 1)
+                knob.Position = UDim2.new(p, -6, 0.5, -6)
+                local color = Color3.fromHSV(p, 1, 1)
+                preview.BackgroundColor3 = color
+                if callback then
+                    callback(color)
+                end
+            end
+
+            if defaultColor then
+                local h = defaultColor:ToHSV()
+                setFromPercent(h)
+            else
+                setFromPercent(0)
+            end
+
+            knob.MouseButton1Down:Connect(function()
+                dragging = true
+            end)
+
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = false
+                end
+            end)
+
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    local rel = mousePos.X - bar.AbsolutePosition.X
+                    local pct = rel / bar.AbsoluteSize.X
+                    setFromPercent(pct)
+                end
+            end)
+
+            return pickerFrame
+        end
+
+        -- Multi-select
+        function tab:AddMultiSelect(text, options, defaultSelected, callback)
+            local selected = {}
+            if type(defaultSelected) == "table" then
+                for _, v in ipairs(defaultSelected) do
+                    selected[v] = true
+                end
+            end
+
+            local frame = CreateInstance("Frame", {
+                Size = UDim2.new(1, 0, 0, 35),
+                BackgroundColor3 = theme.Tertiary,
+                BackgroundTransparency = 0.8,
+                BorderSizePixel = 0,
+                ClipsDescendants = false,
+            }, tabContent)
+
+            CreateInstance("UICorner", {
+                CornerRadius = UDim.new(0, 6),
+            }, frame)
+
+            local label = CreateInstance("TextLabel", {
+                Size = UDim2.new(0.5, -5, 1, 0),
+                Position = UDim2.new(0, 10, 0, 0),
+                BackgroundTransparency = 1,
+                Text = text,
+                TextColor3 = theme.Text,
+                TextSize = 14,
+                Font = Enum.Font.Gotham,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            }, frame)
+
+            local button = CreateInstance("TextButton", {
+                Size = UDim2.new(0.5, -15, 0, 25),
+                Position = UDim2.new(0.5, 0, 0, 5),
+                BackgroundColor3 = theme.Background,
+                BorderSizePixel = 0,
+                Text = "Select...",
+                TextColor3 = theme.Text,
+                TextSize = 13,
+                Font = Enum.Font.Gotham,
+            }, frame)
+
+            CreateInstance("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+            }, button)
+
+            local listFrame = CreateInstance("Frame", {
+                Size = UDim2.new(1, -20, 0, 0),
+                Position = UDim2.new(0, 10, 0, 35),
+                BackgroundColor3 = theme.Background,
+                BorderSizePixel = 0,
+                Visible = false,
+            }, frame)
+
+            CreateInstance("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+            }, listFrame)
+
+            local layout = CreateInstance("UIListLayout", {
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 2),
+            }, listFrame)
+
+            local function updateButtonText()
+                local names = {}
+                for _, opt in ipairs(options) do
+                    if selected[opt] then
+                        table.insert(names, opt)
+                    end
+                end
+                if #names == 0 then
+                    button.Text = "Select..."
+                elseif #names <= 2 then
+                    button.Text = table.concat(names, ", ")
+                else
+                    button.Text = tostring(#names) .. " selected"
+                end
+            end
+
+            local function fireCallback()
+                if callback then
+                    local list = {}
+                    for _, opt in ipairs(options) do
+                        if selected[opt] then
+                            table.insert(list, opt)
+                        end
+                    end
+                    callback(list)
+                end
+            end
+
+            for _, opt in ipairs(options) do
+                local row = CreateInstance("TextButton", {
+                    Size = UDim2.new(1, 0, 0, 25),
+                    BackgroundColor3 = theme.Secondary,
+                    BorderSizePixel = 0,
+                    Text = "",
+                    AutoButtonColor = false,
+                }, listFrame)
+
+                local check = CreateInstance("Frame", {
+                    Size = UDim2.new(0, 16, 0, 16),
+                    Position = UDim2.new(0, 5, 0.5, -8),
+                    BackgroundColor3 = theme.Background,
+                    BorderSizePixel = 0,
+                }, row)
+
+                CreateInstance("UICorner", {
+                    CornerRadius = UDim.new(0, 3),
+                }, check)
+
+                local checkMark = CreateInstance("TextLabel", {
+                    Size = UDim2.new(1, 0, 1, 0),
+                    BackgroundTransparency = 1,
+                    Text = "✔",
+                    TextColor3 = theme.Accent,
+                    TextSize = 12,
+                    Font = Enum.Font.GothamBold,
+                    Visible = selected[opt] or false,
+                }, check)
+
+                local rowLabel = CreateInstance("TextLabel", {
+                    Size = UDim2.new(1, -30, 1, 0),
+                    Position = UDim2.new(0, 28, 0, 0),
+                    BackgroundTransparency = 1,
+                    Text = opt,
+                    TextColor3 = theme.Text,
+                    TextSize = 12,
+                    Font = Enum.Font.Gotham,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                }, row)
+
+                local function setSelected(val)
+                    selected[opt] = val
+                    checkMark.Visible = val
+                    updateButtonText()
+                    fireCallback()
+                end
+
+                if selected[opt] then
+                    setSelected(true)
+                end
+
+                row.MouseButton1Click:Connect(function()
+                    setSelected(not selected[opt])
+                end)
+
+                row.MouseEnter:Connect(function()
+                    Tween(row, {BackgroundColor3 = theme.Accent}, 0.2)
+                end)
+
+                row.MouseLeave:Connect(function()
+                    Tween(row, {BackgroundColor3 = theme.Secondary}, 0.2)
+                end)
+            end
+
+            local isOpen = false
+
+            button.MouseButton1Click:Connect(function()
+                isOpen = not isOpen
+                listFrame.Visible = isOpen
+
+                if isOpen then
+                    local h = layout.AbsoluteContentSize.Y + 6
+                    Tween(frame, {Size = UDim2.new(1, 0, 0, 35 + h)}, 0.3)
+                else
+                    Tween(frame, {Size = UDim2.new(1, 0, 0, 35)}, 0.3)
+                end
+            end)
+
+            updateButtonText()
+            return frame
+        end
+
+        -- Validated textbox
+        function tab:AddValidatedTextbox(text, placeholder, config, callback)
+            config = config or {}
+            local frame = self:AddTextbox(text, placeholder, function(value, enterPressed)
+                local ok = true
+                local reason = nil
+
+                if config.IsNumber then
+                    local n = tonumber(value)
+                    if not n then
+                        ok = false
+                        reason = "Not a number"
+                    end
+                end
+
+                local len = #value
+                if ok and config.MinLength and len < config.MinLength then
+                    ok = false
+                    reason = "Too short"
+                end
+                if ok and config.MaxLength and len > config.MaxLength then
+                    ok = false
+                    reason = "Too long"
+                end
+
+                if ok and config.Pattern then
+                    if not string.match(value, config.Pattern) then
+                        ok = false
+                        reason = "Invalid format"
+                    end
+                end
+
+                local box
+                for _, child in ipairs(frame:GetChildren()) do
+                    if child:IsA("TextBox") then
+                        box = child
+                        break
+                    end
+                end
+
+                if box then
+                    Tween(box, {
+                        BackgroundColor3 = ok and theme.Background or theme.Error,
+                        TextColor3 = ok and theme.Text or Color3.fromRGB(255, 255, 255),
+                    }, 0.2)
+                end
+
+                if callback then
+                    callback(value, ok, reason, enterPressed)
+                end
+            end)
+
+            return frame
+        end
+
+        -- Per-tab search box
+        function tab:AddSearchBox(placeholder)
+            local searchFrame = CreateInstance("Frame", {
+                Size = UDim2.new(1, 0, 0, 30),
+                BackgroundColor3 = theme.Tertiary,
+                BackgroundTransparency = 0.8,
+                BorderSizePixel = 0,
+            }, tabContent)
+
+            CreateInstance("UICorner", {
+                CornerRadius = UDim.new(0, 6),
+            }, searchFrame)
+
+            local box = CreateInstance("TextBox", {
+                Size = UDim2.new(1, -20, 0, 22),
+                Position = UDim2.new(0, 10, 0.5, -11),
+                BackgroundColor3 = theme.Background,
+                BorderSizePixel = 0,
+                Text = "",
+                PlaceholderText = placeholder or "Search...",
+                PlaceholderColor3 = theme.TextDark,
+                TextColor3 = theme.Text,
+                TextSize = 13,
+                Font = Enum.Font.Gotham,
+                ClearTextOnFocus = false,
+            }, searchFrame)
+
+            CreateInstance("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+            }, box)
+
+            local function applyFilter(query)
+                query = string.lower(query)
+                for _, child in ipairs(tabContent:GetChildren()) do
+                    if child:IsA("Frame") and child ~= searchFrame then
+                        local label = child:FindFirstChildWhichIsA("TextLabel", true)
+                        if label and label.Text then
+                            local text = string.lower(label.Text)
+                            child.Visible = (query == "" or string.find(text, query, 1, true) ~= nil)
+                        end
+                    end
+                end
+            end
+
+            box:GetPropertyChangedSignal("Text"):Connect(function()
+                applyFilter(box.Text)
+            end)
+
+            return searchFrame
         end
 
         table.insert(window.Tabs, tab)
