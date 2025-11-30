@@ -294,6 +294,7 @@ function CrustUI:CreateWindow(config)
     config = config or {}
     local windowName = config.Name or "CrustUI Window"
     local windowSize = config.Size or UDim2.new(0, 550, 0, 400)
+    local currentSize = Vector2.new(windowSize.X.Offset, windowSize.Y.Offset)
 
     local themeName = config.ThemeName or DefaultThemeName
     local baseTheme = Themes[themeName] or DefaultTheme
@@ -475,6 +476,56 @@ function CrustUI:CreateWindow(config)
         CornerRadius = UDim.new(0, 8),
     }, contentContainer)
 
+    -- resize handle
+    local resizeHandle = CreateInstance("Frame", {
+        Name = "ResizeHandle",
+        Size = UDim2.new(0, 14, 0, 14),
+        AnchorPoint = Vector2.new(1, 1),
+        Position = UDim2.new(1, -2, 1, -2),
+        BackgroundColor3 = theme.Tertiary,
+        BackgroundTransparency = 0.2,
+        BorderSizePixel = 0,
+    }, mainFrame)
+
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 3),
+    }, resizeHandle)
+
+    local resizing = false
+    local resizeStartPos
+    local resizeStartSize
+
+    resizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = true
+            resizeStartPos = UserInputService:GetMouseLocation()
+            resizeStartSize = currentSize
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if resizing and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mousePos = UserInputService:GetMouseLocation()
+            local delta = mousePos - resizeStartPos
+
+            local newW = math.max(350, resizeStartSize.X + delta.X)
+            local newH = math.max(250, resizeStartSize.Y + delta.Y)
+            currentSize = Vector2.new(newW, newH)
+
+            mainFrame.Size = UDim2.new(0, newW, 0, newH)
+            mainFrame.Position = UDim2.new(0.5, -newW/2, 0.5, -newH/2)
+
+            shadowFrame.Size = UDim2.new(0, newW + 20, 0, newH + 20)
+            shadowFrame.Position = UDim2.new(0.5, -newW/2 - 10, 0.5, -newH/2 - 10)
+        end
+    end)
+
     MakeDraggable(mainFrame, titleBar)
     MakeDraggable(shadowFrame, titleBar)
 
@@ -501,12 +552,12 @@ function CrustUI:CreateWindow(config)
     minimizeBtn.MouseButton1Click:Connect(function()
         minimized = not minimized
         if minimized then
-            Tween(mainFrame, {Size = UDim2.new(0, windowSize.X.Offset, 0, 40)}, 0.3)
-            Tween(shadowFrame, {Size = UDim2.new(0, windowSize.X.Offset + 20, 0, 60)}, 0.3)
+            Tween(mainFrame, {Size = UDim2.new(0, currentSize.X, 0, 40)}, 0.3)
+            Tween(shadowFrame, {Size = UDim2.new(0, currentSize.X + 20, 0, 60)}, 0.3)
             minimizeBtn.Text = "□"
         else
-            Tween(mainFrame, {Size = windowSize}, 0.3)
-            Tween(shadowFrame, {Size = UDim2.new(0, windowSize.X.Offset + 20, 0, windowSize.Y.Offset + 20)}, 0.3)
+            Tween(mainFrame, {Size = UDim2.new(0, currentSize.X, 0, currentSize.Y)}, 0.3)
+            Tween(shadowFrame, {Size = UDim2.new(0, currentSize.X + 20, 0, currentSize.Y + 20)}, 0.3)
             minimizeBtn.Text = "—"
         end
     end)
@@ -525,6 +576,23 @@ function CrustUI:CreateWindow(config)
         ThemeName = themeName,
         Theme = theme,
     }
+
+    function window:SetVisible(visible)
+        screenGui.Enabled = visible
+    end
+
+    function window:ToggleVisible()
+        screenGui.Enabled = not screenGui.Enabled
+    end
+
+    -- optional global toggle key
+    if config.ToggleKey then
+        UserInputService.InputBegan:Connect(function(input, processed)
+            if not processed and input.KeyCode == config.ToggleKey then
+                screenGui.Enabled = not screenGui.Enabled
+            end
+        end)
+    end
 
     function window:CreateTab(tabName, icon)
         local tab = {}
@@ -1217,7 +1285,7 @@ function CrustUI:CreateWindow(config)
             }, frame)
 
             local label = CreateInstance("TextLabel", {
-                Size = UDim2.new(0.5, -5, 1, 0),
+                Size = UDim2.new(0.5, -5, 0, 35),
                 Position = UDim2.new(0, 10, 0, 0),
                 BackgroundTransparency = 1,
                 Text = text,
