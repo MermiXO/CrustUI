@@ -1,4 +1,4 @@
-local CrustUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/SquidGurr/CrustUI/refs/heads/main/CrustUI%20Source.lua"))()
+local CrustUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/MermiXO/CrustUI/refs/heads/main/CrustUI%20Source.lua"))()
 
 local Window = CrustUI:CreateWindow({
     Name = "CrustUI Demo 🍞",
