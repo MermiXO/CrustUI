@@ -512,10 +512,7 @@ function CrustUI:CreateWindow(config)
             currentSize = Vector2.new(newW, newH)
 
             mainFrame.Size = UDim2.new(0, newW, 0, newH)
-            mainFrame.Position = UDim2.new(0.5, -newW/2, 0.5, -newH/2)
-
             shadowFrame.Size = UDim2.new(0, newW + 20, 0, newH + 20)
-            shadowFrame.Position = UDim2.new(0.5, -newW/2 - 10, 0.5, -newH/2 - 10)
         end
     end)
 
@@ -1598,4 +1595,4 @@ function CrustUI:CreateWindow(config)
     return window
 end
 
-return CrustUI
+return CrustUIF
