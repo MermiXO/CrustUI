@@ -5,7 +5,7 @@
 ### Booting library:
 
 ```lua
-local CrustUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/SquidGurr/CrustUI/refs/heads/main/CrustUI%20Source.lua"))()
+local CrustUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/MermiXO/CrustUI/refs/heads/main/CrustUI%20Source.lua"))()
 ```
 ## Creating a Window
 
