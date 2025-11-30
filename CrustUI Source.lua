@@ -685,8 +685,9 @@ function CrustUI:CreateWindow(config)
                 CornerRadius = UDim.new(0, 6),
             }, dropdownFrame)
 
+            -- FIX: label has fixed height so it doesn't move when frame height changes
             local dropdownLabel = CreateInstance("TextLabel", {
-                Size = UDim2.new(0.5, -5, 1, 0),
+                Size = UDim2.new(0.5, -5, 0, 35),
                 Position = UDim2.new(0, 10, 0, 0),
                 BackgroundTransparency = 1,
                 Text = text,
@@ -721,9 +722,10 @@ function CrustUI:CreateWindow(config)
                 Font = Enum.Font.Gotham,
             }, dropdownButton)
 
+            -- FIX: list starts just under the 35px header area
             local dropdownList = CreateInstance("Frame", {
                 Size = UDim2.new(1, -20, 0, 0),
-                Position = UDim2.new(0, 10, 0, 40),
+                Position = UDim2.new(0, 10, 0, 35),
                 BackgroundColor3 = theme.Background,
                 BorderSizePixel = 0,
                 Visible = false,
@@ -778,7 +780,8 @@ function CrustUI:CreateWindow(config)
 
                 if isOpen then
                     local listHeight = #options * 27
-                    Tween(dropdownFrame, {Size = UDim2.new(1, 0, 0, 45 + listHeight)}, 0.3)
+                    -- FIX: expand frame by 35 (header) + list height
+                    Tween(dropdownFrame, {Size = UDim2.new(1, 0, 0, 35 + listHeight)}, 0.3)
                     Tween(dropdownArrow, {Rotation = 180}, 0.3)
                 else
                     Tween(dropdownFrame, {Size = UDim2.new(1, 0, 0, 35)}, 0.3)
