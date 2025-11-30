@@ -6,8 +6,6 @@ local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Debris = game:GetService("Debris")
 
--- THEME DEFINITIONS
-
 local Themes = {}
 
 Themes.Bread = {
@@ -195,8 +193,6 @@ local function MergeTheme(base, override)
     return t
 end
 
--- UTILS
-
 local function CreateInstance(className, properties, parent)
     local instance = Instance.new(className)
     for property, value in pairs(properties or {}) do
@@ -287,8 +283,6 @@ local function CreateRipple(button, color)
 
     Debris:AddItem(ripple, 0.5)
 end
-
--- MAIN API
 
 function CrustUI:CreateWindow(config)
     config = config or {}
@@ -476,7 +470,6 @@ function CrustUI:CreateWindow(config)
         CornerRadius = UDim.new(0, 8),
     }, contentContainer)
 
-    -- resize handle
     local resizeHandle = CreateInstance("Frame", {
         Name = "ResizeHandle",
         Size = UDim2.new(0, 14, 0, 14),
@@ -529,7 +522,6 @@ function CrustUI:CreateWindow(config)
     MakeDraggable(mainFrame, titleBar)
     MakeDraggable(shadowFrame, titleBar)
 
-    -- fade in
     Tween(mainFrame, {BackgroundTransparency = 0}, 0.25)
 
     minimizeBtn.MouseEnter:Connect(function()
@@ -585,7 +577,6 @@ function CrustUI:CreateWindow(config)
         screenGui.Enabled = not screenGui.Enabled
     end
 
-    -- optional global toggle key
     if config.ToggleKey then
         UserInputService.InputBegan:Connect(function(input, processed)
             if not processed and input.KeyCode == config.ToggleKey then
@@ -1152,7 +1143,6 @@ function CrustUI:CreateWindow(config)
             return keybindFrame
         end
 
-        -- Color picker
         function tab:AddColorPicker(text, defaultColor, callback)
             local pickerFrame = CreateInstance("Frame", {
                 Size = UDim2.new(1, 0, 0, 60),
@@ -1263,7 +1253,6 @@ function CrustUI:CreateWindow(config)
             return pickerFrame
         end
 
-        -- Multi-select
         function tab:AddMultiSelect(text, options, defaultSelected, callback)
             local selected = {}
             if type(defaultSelected) == "table" then
@@ -1438,7 +1427,6 @@ function CrustUI:CreateWindow(config)
             return frame
         end
 
-        -- Validated textbox
         function tab:AddValidatedTextbox(text, placeholder, config, callback)
             config = config or {}
             local frame = self:AddTextbox(text, placeholder, function(value, enterPressed)
@@ -1493,7 +1481,6 @@ function CrustUI:CreateWindow(config)
             return frame
         end
 
-        -- Per-tab search box
         function tab:AddSearchBox(placeholder)
             local searchFrame = CreateInstance("Frame", {
                 Size = UDim2.new(1, 0, 0, 30),
